@@ -69,15 +69,15 @@ Preços oficiais consultados em 10/10/2026. Câmbio assumido: US$ 1 = R$ 5,40 (v
 | Etapa | Quando | Modelo | US$ |
 |---|---|---|---|
 | Personagem a partir da foto | antes do pagamento | Claude Opus 5.5, esforço baixo | ~0,02 |
-| História completa (JSON) | antes do pagamento | Claude Opus 5.5, esforço baixo | ~0,06 |
+| História completa (JSON) | antes do pagamento | Claude Haiku 5.5, esforço baixo | ~0,002 |
 | Capa | antes do pagamento | Gemini Nano Banana 2.1, 1K | 0,034 |
-| **Prévia (toda pessoa que chega ao paywall)** | | | **~0,11** |
+| **Prévia (toda pessoa que chega ao paywall)** | | | **~0,056** |
 | 10 páginas | depois do pagamento | Gemini, 1K | 0,34 |
 | PDF e storage | depois | Vercel + Supabase | < 0,005 |
-| **Livro pago completo** | | | **~0,45 (≈ R$ 2,45)** |
+| **Livro pago completo** | | | **~0,40 (≈ R$ 2,15)** |
 | Livro para colorir (10 line arts) | depois do upsell | Gemini, 1K | 0,34 (≈ R$ 1,84) |
 
-Sobre R$ 14,90: Pix no Mercado Pago custa 0,99%, então a margem bruta por livro fica perto de R$ 12. O custo que mais pesa é o das prévias de quem não paga: com 10% de conversão da prévia para a venda, cada venda carrega ~US$ 1,00 (R$ 5,40) de prévias não pagas. Trocar o modelo de texto para Claude Haiku 5.5 (`STORY_MODEL=claude-haiku-5-5`) reduz a prévia para ~US$ 0,04 e esse peso para ~R$ 2,10 por venda. A decisão é sua; o admin mostra o custo real por operação.
+Sobre R$ 14,90: Pix no Mercado Pago custa 0,99%, então a margem bruta por livro fica perto de R$ 12. O custo que mais pesa é o das prévias de quem não paga: com 10% de conversão da prévia para a venda, cada venda carrega ~US$ 0,50 (R$ 2,70) de prévias não pagas. Trocar também a leitura da foto para Haiku (`VISION_MODEL=claude-haiku-5-5`) baixa a prévia para ~US$ 0,037. O admin mostra o custo real por operação.
 
 ## 5. Antes e depois do pagamento
 

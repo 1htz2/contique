@@ -27,7 +27,7 @@ const schema = z.object({
   TEXT_AI_PROVIDER: z.enum(["anthropic", "template"]).default("anthropic"),
   IMAGE_AI_PROVIDER: z.enum(["gemini", "openai", "mock"]).default("gemini"),
   ANTHROPIC_API_KEY: optional,
-  STORY_MODEL: z.string().min(1).default("claude-opus-5-5"),
+  STORY_MODEL: z.string().min(1).default("claude-haiku-5-5"),
   VISION_MODEL: z.string().min(1).default("claude-opus-5-5"),
   GEMINI_API_KEY: optional,
   GEMINI_IMAGE_MODEL: z.string().min(1).default("gemini-nano-banana-2.1"),

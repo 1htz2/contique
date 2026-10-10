@@ -1,7 +1,8 @@
 export const SITE_NAME = "Contique";
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://contique.com.br").replace(/\/$/, "");
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://contique.vercel.app").replace(/\/$/, "");
 export const SITE_DOMAIN = new URL(SITE_URL).host;
-// Fixed on purpose: Mercado Pago rejects payer emails on hosts like localhost or vercel.app.
+// Fixed on purpose: Mercado Pago rejects payer emails on hosts like localhost or vercel.app, so this
+// stays a custom domain even while the site runs on the Vercel URL.
 export const PAYER_EMAIL_DOMAIN = "contique.com.br";
 export const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contato@contique.com.br";
 export const PRODUCT_NAMES = { book: "Livro personalizado", coloring: "Livro para colorir" } as const;
