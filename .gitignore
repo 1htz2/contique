@@ -50,3 +50,7 @@ next-env.d.ts
 
 # fotos do teste de consistência (nunca versionar)
 /test-images
+
+# supabase CLI state
+/supabase/.temp
+/supabase/.branches
