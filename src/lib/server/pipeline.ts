@@ -306,7 +306,7 @@ async function runColoring(book: BookRow, deadline: number): Promise<boolean> {
   if (unfinished(coloringRows)) return Date.now() < deadline;
 
   const images = await loadImages(book.id, "coloring");
-  const pdf = await generateColoringPdf({ story, theme: book.theme, childName: book.child_first_name, pages: images });
+  const pdf = await generateColoringPdf({ story, theme: book.theme, childName: book.child_first_name, childAge: book.child_age, pages: images });
   const path = paths.coloringPdf(book.id);
   await putFile(BUCKETS.books, path, pdf, "application/pdf");
   await updateBook(book.id, {

@@ -17,7 +17,7 @@ Arquitetura, fornecedores e custo por livro: [`docs/ARQUITETURA.md`](docs/ARQUIT
 
 Um lease no banco garante um único worker por livro. Quem chama `advanceBook`: a criação do livro, o webhook do pagamento, o polling da página do livro e o cron diário. Fechar a aba ou recarregar no meio só retoma o trabalho.
 
-Provedores trocáveis em `src/lib/server/ai/`: `TEXT_AI_PROVIDER` (`anthropic` ou `template`) e `IMAGE_AI_PROVIDER` (`gemini`, `openai` ou `mock`). Temas novos são uma entrada em `src/lib/domain/themes.ts`.
+Provedores trocáveis em `src/lib/server/ai/`: `TEXT_AI_PROVIDER` (`anthropic` ou `template`) e `IMAGE_AI_PROVIDER` (`gemini`, `openai` ou `mock`). Temas novos são uma entrada em `src/lib/domain/themes.ts`. O visual por idade (fonte e painel do título, estilo das ilustrações) é uma tabela em `src/lib/domain/cover-look.ts`: até 5 anos mais fofo, de 6 a 8 aventura, de 9 a 14 menos infantil.
 
 ## Rodar localmente
 

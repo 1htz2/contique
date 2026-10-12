@@ -36,8 +36,10 @@ export const PET_KINDS = {
 } as const;
 export type PetKind = keyof typeof PET_KINDS;
 
-export const MIN_AGE = 2;
-export const MAX_AGE = 11;
+export const MIN_AGE = 1;
+export const MAX_AGE = 14;
+// Ages shown as one-tap chips; older children go through "Outro".
+export const AGE_CHIPS = Array.from({ length: 11 }, (_, i) => MIN_AGE + i);
 
 const collapse = (value: string) => value.normalize("NFC").replace(/\s+/g, " ").trim();
 // Letters from any language, combining marks, spaces, apostrophes and hyphens. No digits or symbols,
@@ -93,7 +95,7 @@ export type Companion = z.infer<typeof Companion>;
 export const BookInput = z.object({
   childFirstName: personName(24),
   childNickname: optionalName(20),
-  childAge: z.coerce.number().int().min(MIN_AGE, "Idade mínima: 2 anos.").max(MAX_AGE, "Idade máxima: 11 anos."),
+  childAge: z.coerce.number().int().min(MIN_AGE, `Idade mínima: ${MIN_AGE} ano.`).max(MAX_AGE, `Idade máxima: ${MAX_AGE} anos.`),
   pronoun: z.enum(Object.keys(PRONOUNS) as [Pronoun, ...Pronoun[]]),
   theme: z.enum(THEME_IDS),
   interests: Interests,

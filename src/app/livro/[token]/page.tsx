@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BookCover } from "@/components/book-cover";
 import { TrackOnMount } from "@/components/track-on-mount";
 import { BrandBar, CheckIcon, Sparkle } from "@/components/ui";
 import type { BookStatusResponse } from "@/lib/contracts";
 import { PHOTO_PROBLEMS, VIEW_OF, type PhotoProblem, type Story } from "@/lib/domain/book";
+import { ageBand } from "@/lib/domain/book-input";
+import { coverLookOf } from "@/lib/domain/cover-look";
+import { themeOf } from "@/lib/domain/themes";
 import { findBookByToken, storyOf, type BookRow } from "@/lib/server/books";
 import { env } from "@/lib/server/env";
 import { BUCKETS, signedUrl } from "@/lib/server/storage";
 import { CONTACT_EMAIL } from "@/lib/site";
 import { DeleteData, ShareButton } from "./actions";
 import { Checkout } from "./checkout";
+import { PreviewBook } from "./preview-book";
 import { ColoringProgress, GenerationProgress, PreviewProgress } from "./progress";
 
 export const metadata: Metadata = {
@@ -39,7 +44,7 @@ export default async function BookPage({ params }: PageProps<"/livro/[token]">) 
       {view === "preview_generating" && <PreviewProgress token={token} name={name} initial={initial} />}
       {view === "photo_rejected" && <PhotoRejected problem={book.status_detail} name={name} />}
       {view === "preview_failed" && <Trouble title="A capa não saiu dessa vez" text="Tivemos uma instabilidade ao criar a prévia. Nada foi cobrado. Tente de novo em alguns minutos." retry />}
-      {view === "preview_ready" && story && cover && <Preview token={token} name={name} story={story} cover={cover} price={BOOK_PRICE_BRL} />}
+      {view === "preview_ready" && story && cover && <Preview token={token} book={book} story={story} cover={cover} price={BOOK_PRICE_BRL} />}
       {view === "generating" && <GenerationProgress token={token} name={name} initial={initial} />}
       {view === "completed" && story && (
         <Completed
@@ -63,37 +68,29 @@ export default async function BookPage({ params }: PageProps<"/livro/[token]">) 
   );
 }
 
-function CoverImage({ src, story, className = "" }: { src: string; story: Pick<Story, "title" | "subtitle">; className?: string }) {
-  return (
-    <div className={`relative aspect-[3/4] overflow-hidden rounded-r-2xl rounded-l-md shadow-[0_24px_50px_-20px_rgb(43_35_32/0.55)] ${className}`}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- short-lived signed URL from private storage */}
-      <img src={src} alt={`Capa: ${story.title}`} className="absolute inset-0 size-full object-cover" />
-      <div className="absolute inset-y-0 left-0 w-3 bg-gradient-to-r from-black/25 to-transparent" />
-      <div className="absolute inset-x-[6%] top-[5%] rounded-2xl bg-paper/90 px-3 py-3 text-center">
-        <p className="display text-[clamp(1.1rem,5.4vw,1.7rem)] leading-[1.05]">{story.title}</p>
-      </div>
-    </div>
-  );
-}
+// Body text size in the preview follows the PDF: bigger letters for the youngest readers.
+const PREVIEW_TEXT = { small: "text-[1.2rem]", middle: "text-[1.05rem]", big: "text-[0.98rem]" } as const;
 
-function Preview({ token, name, story, cover, price }: { token: string; name: string; story: Story; cover: string; price: number }) {
+function Preview({ token, book, story, cover, price }: { token: string; book: BookRow; story: Story; cover: string; price: number }) {
+  const name = book.child_first_name;
+  const teaser = story.pages[1].text.split(/\s+/).slice(0, 12).join(" ");
   return (
     <>
       <TrackOnMount event="paywall_viewed" token={token} properties={{ value: price, currency: "BRL" }} />
       <section className="animate-fade mx-auto max-w-md px-5 pt-2">
         <p className="label text-leaf">A capa está pronta</p>
         <h1 className="display mt-2 text-[2.2rem] text-balance">A aventura de {name} está pronta para continuar.</h1>
-        <CoverImage src={cover} story={story} className="mx-auto mt-7 w-[82%]" />
-
-        <article className="card mt-8 p-6">
-          <p className="label text-stone">Página 1</p>
-          <p className="mt-3 text-[1.15rem] leading-relaxed">{story.pages[0].text}</p>
-          <div className="mt-5 flex items-center gap-2 text-sm font-bold text-stone">
-            <span className="h-px flex-1 bg-line" />
-            continua em mais 9 páginas ilustradas
-            <span className="h-px flex-1 bg-line" />
-          </div>
-        </article>
+        <PreviewBook
+          cover={cover}
+          title={story.title}
+          subtitle={story.subtitle}
+          look={coverLookOf(book.child_age)}
+          accent={themeOf(book.theme).colors.ink}
+          name={name}
+          firstPage={story.pages[0].text}
+          teaser={teaser}
+          textSize={PREVIEW_TEXT[ageBand(book.child_age)]}
+        />
 
         <div className="mt-8 rounded-[2rem] bg-sun-soft/70 p-6">
           <h2 className="display text-[1.7rem]">O livro de {name} está quase pronto.</h2>
@@ -138,7 +135,16 @@ function Completed({
       <TrackOnMount event="book_viewed" token={token} />
       <p className="label flex items-center gap-1.5 text-leaf"><Sparkle className="size-3.5" /> Seu livro está pronto!</p>
       <h1 className="display mt-2 text-[2.2rem] text-balance">{story.title}</h1>
-      {cover && <CoverImage src={cover} story={story} className="mx-auto mt-6 w-[72%]" />}
+      {cover && (
+        <BookCover
+          src={cover}
+          title={story.title}
+          subtitle={story.subtitle}
+          look={coverLookOf(book.child_age)}
+          accent={themeOf(book.theme).colors.ink}
+          className="mx-auto mt-6 w-[72%] shadow-[0_24px_50px_-20px_rgb(43_35_32/0.55)]"
+        />
+      )}
 
       <div className="mt-8 flex flex-col gap-3">
         <a href={download} className="btn-primary">BAIXAR PDF</a>

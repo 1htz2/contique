@@ -59,8 +59,10 @@ describe("BookInput", () => {
   });
 
   it("keeps ages within the supported range", () => {
-    expect(parse({ childAge: 1 }).success).toBe(false);
-    expect(parse({ childAge: 12 }).success).toBe(false);
+    expect(parse({ childAge: 0 }).success).toBe(false);
+    expect(parse({ childAge: 1 }).success).toBe(true);
+    expect(parse({ childAge: 14 }).success).toBe(true);
+    expect(parse({ childAge: 15 }).success).toBe(false);
     expect(parse({ childAge: "8" as never }).success).toBe(true);
   });
 });

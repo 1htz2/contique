@@ -1,4 +1,5 @@
 import { COMPANIONS, PAGE_TEXT_MAX, PET_KINDS, TRAITS, ageBand, type BookInput } from "@/lib/domain/book-input";
+import { coverLookOf } from "@/lib/domain/cover-look";
 import { themeOf } from "@/lib/domain/themes";
 import type { CharacterSheet } from "./character";
 import { companionDescriptor } from "./character";
@@ -62,9 +63,9 @@ export function storyUserMessage(input: BookInput): string {
   const theme = themeOf(input.theme);
   const band = ageBand(input.childAge);
   const style = {
-    small: "3 a 5 anos: frases curtas e simples, palavras do dia a dia, repetições gostosas de ler em voz alta.",
+    small: "até 5 anos: frases curtas e simples, palavras do dia a dia, repetições gostosas de ler em voz alta.",
     middle: "6 a 8 anos: mais aventura e narrativa, um pouco de suspense leve, diálogos curtos.",
-    big: "9 a 11 anos: história um pouco mais elaborada, vocabulário mais rico, humor e reviravoltas leves.",
+    big: "9 anos ou mais: história um pouco mais elaborada, vocabulário mais rico, humor e reviravoltas leves.",
   }[band];
   const companion = (() => {
     const c = input.companion;
@@ -76,7 +77,7 @@ export function storyUserMessage(input: BookInput): string {
   return [
     `Nome da criança: ${input.childFirstName}`,
     input.childNickname ? `Apelido carinhoso (use no máximo duas vezes): ${input.childNickname}` : null,
-    `Idade: ${input.childAge} anos (${style})`,
+    `Idade: ${input.childAge} ${input.childAge === 1 ? "ano" : "anos"} (${style})`,
     `Pronome: ${input.pronoun === "neutro" ? "usar só o nome, sem gênero" : input.pronoun}`,
     `Aventura: ${theme.name}. ${theme.description}`,
     `Sugestão de título: ${input.childFirstName} e ${theme.titleTail} (pode criar um melhor)`,
@@ -108,8 +109,8 @@ Set usable to true and problem to "none" only when none of these apply. When unu
 
 distinctive_details: up to 4 short visual details that help recognition, such as freckles, dimples, a gap in the front teeth, rosy cheeks, a hair clip, a headband. Never include scars, birthmarks, medical devices or anything that could be sensitive.`;
 
-const STYLE =
-  "Premium modern children's picture book illustration, soft gouache and colored pencil textures, warm rounded shapes, gentle storybook lighting, soft but vibrant palette, expressive friendly faces with big kind eyes, clean readable composition, cozy and magical mood. Not photorealistic.";
+// The same style on the cover and every page keeps the book consistent.
+const styleOf = (input: BookInput) => `${coverLookOf(input.childAge).art} Clean readable composition. Not photorealistic.`;
 const SAFETY =
   "Wholesome and age-appropriate: every character fully clothed in normal children's clothes, innocent poses, nothing scary or violent. No text, no letters, no words, no logos, no watermark, no signature.";
 
@@ -117,7 +118,7 @@ export function coverPrompt(sheet: CharacterSheet, input: BookInput, scene: stri
   const theme = themeOf(input.theme);
   const companion = companionDescriptor(input, companionLook);
   return [
-    `Book cover illustration, vertical composition. ${STYLE}`,
+    `Book cover illustration, vertical composition. ${styleOf(input)}`,
     `Main character: ${sheet.descriptor}. Turn the reference photo into this illustrated character: keep the child's recognizable features (hair, face shape, eye and skin colors) but draw them as a storybook character, never as a photo.`,
     companion ? `Also on the cover: ${companion}.` : null,
     `Scene: ${scene}`,
@@ -133,7 +134,7 @@ export function pagePrompt(sheet: CharacterSheet, input: BookInput, scene: strin
   const theme = themeOf(input.theme);
   const companion = companionDescriptor(input, companionLook);
   return [
-    `Interior illustration for a children's picture book, horizontal composition. ${STYLE}`,
+    `Interior illustration for a children's book, horizontal composition. ${styleOf(input)}`,
     `The main character must look exactly like the child in the reference image (the book cover): same face, hair, colors and outfit. Main character: ${sheet.descriptor}.`,
     companion ? `Recurring character, when present in the scene: ${companion}.` : null,
     `Scene: ${scene}`,

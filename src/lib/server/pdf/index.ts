@@ -5,6 +5,7 @@ import fontkit from "@pdf-lib/fontkit";
 import { PDFDocument, rgb, type PDFFont, type PDFImage, type PDFPage, type RGB } from "pdf-lib";
 import { PAGE_COUNT, type Story } from "@/lib/domain/book";
 import { ageBand } from "@/lib/domain/book-input";
+import { coverLookOf, type CoverLook } from "@/lib/domain/cover-look";
 import { themeOf } from "@/lib/domain/themes";
 import { SITE_NAME } from "@/lib/site";
 
@@ -23,20 +24,21 @@ const hex = (value: string): RGB => {
 
 type Fonts = { title: PDFFont; body: PDFFont; bold: PDFFont };
 
-let fontBytes: Promise<[Buffer, Buffer, Buffer]> | undefined;
-const loadFontBytes = () =>
-  (fontBytes ??= Promise.all(
-    ["Fraunces-SemiBold.ttf", "Nunito-Medium.ttf", "Nunito-ExtraBold.ttf"].map((f) => readFile(join(process.cwd(), "public/fonts", f))),
-  ) as Promise<[Buffer, Buffer, Buffer]>);
+const fontBytes = new Map<string, Promise<Buffer>>();
+const loadFont = (file: string) => {
+  if (!fontBytes.has(file)) fontBytes.set(file, readFile(join(process.cwd(), "public/fonts", file)));
+  return fontBytes.get(file)!;
+};
 
-async function newDocument(title: string): Promise<{ pdf: PDFDocument; fonts: Fonts }> {
+// The title font follows the child's age band; body text stays Nunito for legibility.
+async function newDocument(title: string, look: CoverLook): Promise<{ pdf: PDFDocument; fonts: Fonts }> {
   const pdf = await PDFDocument.create();
   pdf.registerFontkit(fontkit);
   pdf.setTitle(title);
   pdf.setAuthor(SITE_NAME);
   pdf.setCreator(SITE_NAME);
   pdf.setProducer(SITE_NAME);
-  const [title_, body, bold] = await loadFontBytes();
+  const [title_, body, bold] = await Promise.all([look.pdfFont, "Nunito-Medium.ttf", "Nunito-ExtraBold.ttf"].map(loadFont));
   const fonts = {
     title: await pdf.embedFont(title_, { subset: true }),
     body: await pdf.embedFont(body, { subset: true }),
@@ -120,6 +122,40 @@ function placeholderArt(page: PDFPage, x: number, y: number, width: number, heig
   }
 }
 
+function roundedRect(page: PDFPage, x: number, top: number, width: number, height: number, r: number, color: RGB, opacity: number) {
+  const path = `M${r} 0 H${width - r} Q${width} 0 ${width} ${r} V${height - r} Q${width} ${height} ${width - r} ${height} H${r} Q0 ${height} 0 ${height - r} V${r} Q0 0 ${r} 0 Z`;
+  page.drawSvgPath(path, { x, y: top, color, opacity, borderWidth: 0 });
+}
+
+// Title over the cover art, styled per age band: a soft bubble for the youngest, a ribbon in the
+// theme color in the middle, and a dark fade with white type for older kids.
+function coverTitle(page: PDFPage, fonts: Fonts, story: Story, look: CoverLook, accent: RGB) {
+  const WHITE = rgb(1, 1, 1);
+  const inset = look.panel === "bubble" ? 64 : 48;
+  const sizes = look.panel === "shade" ? [50, 46, 42, 36, 30] : [44, 40, 36, 32, 28];
+  const title = fitText(drawable(fonts.title, story.title), fonts.title, sizes, W - 2 * M - inset, 3);
+  const titleHeight = title.lines.length * title.size * 1.08;
+  const subtitle = story.subtitle ? wrap(drawable(fonts.body, story.subtitle), fonts.body, 14, W - 2 * M - inset - 16) : [];
+  const panelHeight = titleHeight + (subtitle.length ? subtitle.length * 14 * 1.4 + 12 : 0) + 44;
+
+  if (look.panel === "bubble") roundedRect(page, M, H - M, W - 2 * M, panelHeight, 28, CREAM, 0.93);
+  if (look.panel === "ribbon") page.drawRectangle({ x: 0, y: H - M - panelHeight, width: W, height: panelHeight + M, color: accent, opacity: 0.92 });
+  if (look.panel === "shade") {
+    // Nested translucent layers from the top edge add up to a smooth fade with no visible bands.
+    const depth = panelHeight + M + 140;
+    const layers = 40;
+    for (let i = 1; i <= layers; i++) {
+      const h = (depth * i) / layers;
+      page.drawRectangle({ x: 0, y: H - h, width: W, height: h, color: rgb(0.05, 0.05, 0.1), opacity: 0.024 });
+    }
+  }
+
+  const titleColor = look.panel === "bubble" ? accent : WHITE;
+  const subtitleColor = look.panel === "bubble" ? SOFT : rgb(0.95, 0.95, 0.95);
+  const afterTitle = drawLines(page, title.lines, { font: fonts.title, size: title.size, top: H - M - 22, lineHeight: 1.08, color: titleColor, align: "center" });
+  if (subtitle.length) drawLines(page, subtitle, { font: fonts.body, size: 14, top: afterTitle - 10, lineHeight: 1.4, color: subtitleColor, align: "center" });
+}
+
 function pageNumber(page: PDFPage, n: number, fonts: Fonts) {
   const label = String(n);
   page.drawText(label, { x: (W - fonts.body.widthOfTextAtSize(label, 10)) / 2, y: 22, size: 10, font: fonts.body, color: SOFT });
@@ -150,20 +186,14 @@ export type BookPdfInput = {
 };
 
 export async function generateBookPdf({ story, theme, childName, childAge, cover, pages }: BookPdfInput): Promise<Buffer> {
-  const { pdf, fonts } = await newDocument(story.title);
-  const colors = themeOf(theme).colors;
-  const accent = hex(colors.ink);
+  const look = coverLookOf(childAge);
+  const { pdf, fonts } = await newDocument(story.title, look);
+  const accent = hex(themeOf(theme).colors.ink);
 
   // Cover: full-bleed art with the title set in real type (image models misspell names).
   const coverPage = pdf.addPage([W, H]);
   drawImageCover(coverPage, await pdf.embedJpg(cover), 0, 0, W, H);
-  const title = fitText(drawable(fonts.title, story.title), fonts.title, [44, 40, 36, 32, 28], W - 2 * M - 48, 3);
-  const titleHeight = title.lines.length * title.size * 1.12;
-  const subtitle = story.subtitle ? wrap(drawable(fonts.body, story.subtitle), fonts.body, 14, W - 2 * M - 64) : [];
-  const panelHeight = titleHeight + (subtitle.length ? subtitle.length * 14 * 1.4 + 12 : 0) + 44;
-  coverPage.drawRectangle({ x: M, y: H - M - panelHeight, width: W - 2 * M, height: panelHeight, color: CREAM, opacity: 0.88, borderWidth: 0 });
-  const afterTitle = drawLines(coverPage, title.lines, { font: fonts.title, size: title.size, top: H - M - 22, lineHeight: 1.12, color: INK, align: "center" });
-  if (subtitle.length) drawLines(coverPage, subtitle, { font: fonts.body, size: 14, top: afterTitle - 10, lineHeight: 1.4, color: SOFT, align: "center" });
+  coverTitle(coverPage, fonts, story, look, accent);
 
   const textSize = { small: 26, middle: 22, big: 18 }[ageBand(childAge)];
 
@@ -205,10 +235,10 @@ export async function generateBookPdf({ story, theme, childName, childAge, cover
   return Buffer.from(await pdf.save());
 }
 
-export type ColoringPdfInput = { story: Story; theme: string; childName: string; pages: Map<number, Buffer> };
+export type ColoringPdfInput = { story: Story; theme: string; childName: string; childAge: number; pages: Map<number, Buffer> };
 
-export async function generateColoringPdf({ story, theme, childName, pages }: ColoringPdfInput): Promise<Buffer> {
-  const { pdf, fonts } = await newDocument(`${story.title} - para colorir`);
+export async function generateColoringPdf({ story, theme, childName, childAge, pages }: ColoringPdfInput): Promise<Buffer> {
+  const { pdf, fonts } = await newDocument(`${story.title} - para colorir`, coverLookOf(childAge));
   const accent = hex(themeOf(theme).colors.ink);
 
   const cover = pdf.addPage([W, H]);

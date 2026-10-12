@@ -8,6 +8,7 @@ import { trackEvent } from "@/lib/analytics/client";
 import { getAttribution, getVisitorId } from "@/lib/attribution";
 import type { CreateBookPayload, CreateBookResponse } from "@/lib/contracts";
 import {
+  AGE_CHIPS,
   BookInput,
   COMPANIONS,
   MAX_AGE,
@@ -296,6 +297,7 @@ function FieldError({ message }: { message?: string }) {
 }
 
 function ChildStep({ draft, errors, update }: StepProps) {
+  const [otherAge, setOtherAge] = useState(draft.childAge !== null && !AGE_CHIPS.includes(draft.childAge));
   return (
     <>
       <Heading title="Quem é a estrela da história?" text="Só o primeiro nome. Nada de sobrenome, escola ou endereço." />
@@ -316,13 +318,49 @@ function ChildStep({ draft, errors, update }: StepProps) {
 
       <fieldset className="mt-7">
         <legend className="font-extrabold">Idade</legend>
-        <div className="mt-2 grid grid-cols-5 gap-2">
-          {Array.from({ length: MAX_AGE - MIN_AGE + 1 }, (_, i) => MIN_AGE + i).map((age) => (
-            <button key={age} type="button" className="chip px-0" aria-pressed={draft.childAge === age} onClick={() => update({ childAge: age })}>
+        <div className="mt-2 grid grid-cols-6 gap-2">
+          {AGE_CHIPS.map((age) => (
+            <button
+              key={age}
+              type="button"
+              className="chip px-0"
+              aria-pressed={!otherAge && draft.childAge === age}
+              onClick={() => {
+                setOtherAge(false);
+                update({ childAge: age });
+              }}
+            >
               {age}
             </button>
           ))}
+          <button
+            type="button"
+            className="chip px-0"
+            aria-pressed={otherAge}
+            onClick={() => {
+              setOtherAge(true);
+              update({ childAge: null });
+            }}
+          >
+            Outro
+          </button>
         </div>
+        {otherAge && (
+          <label className="mt-3 block">
+            <span className="block text-sm font-bold text-ink/70">Quantos anos?</span>
+            <input
+              className="field mt-1 w-32"
+              type="number"
+              inputMode="numeric"
+              min={MIN_AGE}
+              max={MAX_AGE}
+              autoFocus
+              value={draft.childAge ?? ""}
+              onChange={(e) => update({ childAge: e.target.value === "" ? null : Number(e.target.value) })}
+              placeholder={`Até ${MAX_AGE}`}
+            />
+          </label>
+        )}
         <FieldError message={errors.childAge} />
       </fieldset>
 

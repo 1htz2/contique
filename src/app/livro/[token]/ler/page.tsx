@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { BookCover } from "@/components/book-cover";
 import { BrandBar } from "@/components/ui";
+import { coverLookOf } from "@/lib/domain/cover-look";
+import { themeOf } from "@/lib/domain/themes";
 import { findBookByToken, listAssets, storyOf } from "@/lib/server/books";
 import { BUCKETS, signedUrl, signedUrls } from "@/lib/server/storage";
 import { SITE_NAME } from "@/lib/site";
@@ -32,14 +35,16 @@ export default async function ReaderPage({ params }: PageProps<"/livro/[token]/l
         <Link href={`/livro/${token}`} className="min-h-12 px-2 py-3 font-bold text-ink/70">← Voltar</Link>
       </BrandBar>
       <article className="mx-auto flex max-w-md flex-col gap-8 px-5 pt-4">
+        <h1 className="sr-only">{story.title}</h1>
         {cover && (
-          <div className="relative aspect-[3/4] overflow-hidden rounded-2xl shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element -- signed URL */}
-            <img src={cover} alt={`Capa: ${story.title}`} className="absolute inset-0 size-full object-cover" />
-            <div className="absolute inset-x-[6%] top-[5%] rounded-2xl bg-paper/90 px-3 py-3 text-center">
-              <h1 className="display text-[clamp(1.2rem,6vw,1.8rem)] leading-[1.05]">{story.title}</h1>
-            </div>
-          </div>
+          <BookCover
+            src={cover}
+            title={story.title}
+            subtitle={story.subtitle}
+            look={coverLookOf(book.child_age)}
+            accent={themeOf(book.theme).colors.ink}
+            className="shadow-lg"
+          />
         )}
         {story.pages.map((page) => {
           const src = imageOf(page.page);

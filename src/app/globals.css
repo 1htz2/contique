@@ -218,6 +218,25 @@ body {
   }
 }
 
+/* The closed cover lifts its edge now and then, inviting a tap to open the book. */
+@keyframes peek {
+  0%,
+  70%,
+  100% {
+    transform: rotateY(0deg);
+  }
+  80% {
+    transform: rotateY(-16deg);
+  }
+  90% {
+    transform: rotateY(-4deg);
+  }
+}
+
+@utility animate-peek {
+  animation: peek 4s ease-in-out 1.2s infinite;
+}
+
 @utility animate-rise {
   animation: rise 600ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
